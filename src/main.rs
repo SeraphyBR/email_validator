@@ -16,6 +16,7 @@ use rocket_cors::CorsOptions;
 
 use models::response::{Message, Response};
 use controllers::health;
+use controllers::mail;
 
 pub struct PortConfig(u16);
 
@@ -23,10 +24,14 @@ fn build_rocket() -> rocket::Rocket {
     let cors = CorsOptions::default().to_cors().unwrap();
 
     let health = routes![health::index];
+    let mail = routes![
+        mail::validation_v1,
+    ];
 
     rocket::ignite()
         .mount("/", routes![index])
         .mount("/health", health)
+        .mount("/mail", mail)
         .attach(AdHoc::on_attach("Port Config", |rocket| {
             let port = rocket.config().port;
             Ok(rocket.manage(PortConfig(port)))
