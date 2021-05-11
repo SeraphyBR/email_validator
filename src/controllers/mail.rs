@@ -1,4 +1,6 @@
 use rocket_contrib::json::Json;
+use sqlx::PgPool;
+use rocket::State;
 use crate::models::response::{Message, Response, EvaResponse};
 use crate::models::email::{EmailData, EmailQuery, Query};
 use std::collections::HashMap;

@@ -16,6 +16,7 @@ pkgs.mkShell {
       # Cargo extensions
       cargo-edit
       cargo-make
+      sqlx-cli
 
       # Use steam-run, for a fhs enviroment, allow vscode code-lldb debugger to run
       # $ steam-run code .
