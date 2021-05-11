@@ -20,6 +20,10 @@ impl<T> Response<T> {
     pub fn with_result(&mut self, value: T) {
         self.results.push(value);
     }
+
+    pub fn with_results(&mut self, values: &mut Vec<T>) {
+        self.results.append(values);
+    }
 }
 
 impl Response<Message> {

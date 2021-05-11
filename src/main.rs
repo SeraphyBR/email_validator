@@ -38,7 +38,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let health = routes![health::index];
     let mail = routes![
         mail::validation_v1,
-        mail::validation_v3
+        mail::validation_v3,
+        mail::database_v1,
+        mail::database_v3
     ];
 
     rocket::build()
