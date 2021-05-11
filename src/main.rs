@@ -1,7 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
-#[macro_use]
-extern crate rocket;
+#[macro_use] extern crate rocket;
 
 #[cfg(test)]
 mod tests;
@@ -9,8 +6,8 @@ mod tests;
 mod controllers;
 mod models;
 
-use rocket::State;
-use rocket::fairing::AdHoc;
+use std::error::Error;
+
 use rocket_contrib::json::Json;
 use rocket_cors::CorsOptions;
 
@@ -20,32 +17,28 @@ use controllers::mail;
 
 pub struct PortConfig(u16);
 
-fn build_rocket() -> rocket::Rocket {
-    let cors = CorsOptions::default().to_cors().unwrap();
-
-    let health = routes![health::index];
-    let mail = routes![
-        mail::validation_v1,
-    ];
-
-    rocket::ignite()
-        .mount("/", routes![index])
-        .mount("/health", health)
-        .mount("/mail", mail)
-        .attach(AdHoc::on_attach("Port Config", |rocket| {
-            let port = rocket.config().port;
-            Ok(rocket.manage(PortConfig(port)))
-        }))
-        .attach(cors)
-}
-
 #[get("/")]
 fn index() -> Json<Response<String>> {
     Json(Response::ok())
 }
 
+#[rocket::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let cors = CorsOptions::default().to_cors()?;
 
-fn main() {
-    let rocket = build_rocket();
-    rocket.launch();
+    let health = routes![health::index];
+    let mail = routes![
+        mail::validation_v1,
+        mail::validation_v3
+    ];
+
+    rocket::build()
+        .mount("/", routes![index])
+        .mount("/health", health)
+        .mount("/mail", mail)
+        .manage(PortConfig(8080))
+        .attach(cors)
+        .launch().await?;
+
+    Ok(())
 }

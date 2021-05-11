@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use crate::models::email::EmailData;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Response<T> {
@@ -38,4 +39,10 @@ impl Message {
             message: content
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct EvaResponse {
+    pub status: String,
+    pub data: EmailData
 }
