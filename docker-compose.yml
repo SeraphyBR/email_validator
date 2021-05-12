@@ -1,0 +1,29 @@
+
+services:
+    postgres:
+        image: postgres:13.2
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: pass
+        ports:
+            - "5433:5432"
+    email_validator:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            DATABASE_URL: postgres://postgres:pass@postgres/email_validator
+            ROCKET_PROFILE: docker
+        ports:
+            - "8080:8080"
+        depends_on:
+            - postgres
+        volumes:
+            # Mount the src/ directory so we don't have to rebuild the Docker image
+            # when we want to change some code
+            - ./src:/api/src:ro
+            - cargo-cache:/usr/local/cargo/registry
+            - target-cache:/api/target
+volumes:
+    cargo-cache:
+    target-cache:
