@@ -13,7 +13,7 @@ use rocket_contrib::json::Json;
 use rocket_cors::CorsOptions;
 use sqlx::PgPool;
 
-use models::response::{Message, Response};
+use models::response::Response;
 use controllers::health;
 use controllers::mail;
 

@@ -1,7 +1,7 @@
 use rocket_contrib::json::Json;
-use sqlx::PgPool;
 use rocket::State;
-use crate::models::response::{Message, Response, EvaResponse};
+use sqlx::PgPool;
+use crate::models::response::{Response, EvaResponse};
 use crate::models::email::{EmailData, EmailQueryDB, Query, EmailDataV1, EmailDataV3};
 use std::error::Error;
 use reqwest;
