@@ -2,7 +2,28 @@
 
 ## Sobre
 
--- todo
+Essa é uma API feita em Rust, para um desafio de processo seletivo, que deve verificar se um determinado email
+é valido e confiavel, possui 2 métodos de validação, o v1 que utiliza de código próprio (básico) para validar um email,
+e o v3 que faz consulta a outra API para determinar se é valido.
+
+O código foi construido usando o framework web [Rocket](https://rocket.rs/master/) na versão 0.5 para uso de async e await.
+Foi utilizado o [SQLx](https://github.com/launchbadge/sqlx) para comunicação com o banco Postgres.
+E [reqwest](https://github.com/seanmonstar/reqwest) para requisições a [API EVA](https://eva.pingutil.com/)
+
+## TODO's
+- Requisitos:
+  - [x] Criar servidor com duas rotas de acesso `/` e `/health`.
+  - [x] Adicionar rota de validação v1 (código próprio).
+  - [x] Adicionar rota de validação v3 (API EVA).
+  - [x] Criar banco de dados com as tabelas email_data_v1 e email_data_v3
+  - [x] Atualizar rotas para salvar os dados nas tabelas
+  - [x] Criar rotas com query string para consultas nas tabelas
+  - [x] Suporte a docker
+  - [x] Atualizar a rota de validação v3 para funcionar com concorrência, nos casos de um array.
+- Extras:
+  - [ ] Adicionar mais condições para um email válido na rota de validação v1
+  - [ ] Implementar testes unitários para as rotas.
+  - [ ] Fazer tratamento de erros e remover os `.unwrap()`.
 
 ## Como compilar e executar
 
