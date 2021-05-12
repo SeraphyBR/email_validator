@@ -101,7 +101,7 @@
 </tr>
 <tr>
     <td> Paramêtros da URL </td>
-    <td>
+    <td> Opcionais
 <pre>
 id=[integer]
 email_address=[string]
@@ -148,7 +148,7 @@ valid_syntax=[boolean]
 </tr>
 <tr>
     <td> Paramêtros da URL </td>
-    <td>
+    <td> Opcionais
 <pre>
 id=[integer]
 email_address=[string]
