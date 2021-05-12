@@ -3,7 +3,7 @@ use rocket::State;
 use sqlx::PgPool;
 use crate::models::response::{Response, EvaResponse};
 use crate::models::email::{EmailData, EmailQueryDB, Query, EmailDataV1, EmailDataV3};
-use std::error::Error;
+use rocket::futures::{stream,StreamExt};
 use reqwest;
 
 #[post("/validation/v1", format = "json", data = "<query>")]
@@ -13,6 +13,7 @@ pub async fn validation_v1(query: Json<Query>, db: State<'_, PgPool>) -> Json<Re
         Query::One(eq) => vec![eq],
         Query::More(vec) => vec
     };
+
     for eq in emails {
         let mut data = EmailData::default();
         data.email_address = eq.email_address.clone();
@@ -40,42 +41,52 @@ fn verify_syntax(email: &String) -> bool {
 
 #[post("/validation/v3", format = "json", data = "<query>")]
 pub async fn validation_v3(query: Json<Query>, db: State<'_, PgPool>) -> Json<Response<EmailData>> {
+    let client = reqwest::Client::new();
     let mut response = Response::ok();
-    let emails = match query.into_inner() {
-        Query::One(eq) => vec![eq],
-        Query::More(vec) => vec
+    match query.into_inner() {
+        Query::One(eq) => {
+            response.with_result(get_eva_response(&client, eq.email_address, &db).await)
+        },
+        Query::More(emails) => {
+            // https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest
+            // Aqui eu itero por cada email vindo da requisição, retornando para cada, um future
+            // Depois em buffer_unordered todas as futures serão executadas de forma concorrente, com o limite de 24 futures concorrentes
+            let results = stream::iter(emails).map(|eq| {
+                get_eva_response(&client, eq.email_address, &db)
+            }).buffer_unordered(24);
+
+            let mut results = results.collect::<Vec<EmailData>>().await;
+            response.with_results(&mut results);
+        }
     };
-    for eq in emails {
-        let resp = get_response_from_eva(eq.email_address).await.unwrap();
-        let data = resp.data;
-        sqlx::query!("
-            INSERT INTO email_data_v3(
-                email_address, domain, valid_syntax, disposable, webmail,
-                deliverable, catch_all, gibberish, spam
-            )
-            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            ",
-            data.email_address,
-            data.domain,
-            data.valid_syntax,
-            data.disposable,
-            data.webmail,
-            data.deliverable,
-            data.catch_all,
-            data.gibberish,
-            data.spam
-        ).execute(db.inner()).await.unwrap();
-        response.with_result(data);
-    }
+
     Json(response)
 }
 
-async fn get_response_from_eva(email: String) -> Result<EvaResponse, Box<dyn Error>> {
+async fn get_eva_response(client: &reqwest::Client, email: String, db: &PgPool) -> EmailData {
     let url = format!("https://api.eva.pingutil.com/email?email={}", email);
-    let resp = reqwest::get(&url).await?
+    let resp = client.get(&url).send().await.unwrap()
         .json::<EvaResponse>()
-        .await?;
-    Ok(resp)
+        .await.unwrap();
+    let data = resp.data;
+    sqlx::query!("
+        INSERT INTO email_data_v3(
+            email_address, domain, valid_syntax, disposable, webmail,
+            deliverable, catch_all, gibberish, spam
+        )
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        ",
+        data.email_address,
+        data.domain,
+        data.valid_syntax,
+        data.disposable,
+        data.webmail,
+        data.deliverable,
+        data.catch_all,
+        data.gibberish,
+        data.spam
+    ).execute(db).await.unwrap();
+    data
 }
 
 #[get("/db/v1?<query..>")]
@@ -87,8 +98,8 @@ pub async fn database_v1(query: EmailQueryDB, db: State<'_, PgPool>) -> Json<Res
         FROM email_data_v1
         WHERE
             ($1::int IS NULL OR id = $1::int) AND
-            ($2::varchar IS NULL OR email_address LIKE $2::varchar) AND
-            ($3::varchar IS NULL OR domain LIKE $3::varchar) AND
+            ($2::varchar IS NULL OR email_address = $2::varchar) AND
+            ($3::varchar IS NULL OR domain = $3::varchar) AND
             ($4::bool IS NULL OR valid_syntax = $4::bool)
         ", query.id, query.email_address, query.domain, query.valid_syntax)
         .fetch_all(db.inner())
@@ -107,7 +118,7 @@ pub async fn database_v3(query: EmailQueryDB, db: State<'_, PgPool>) -> Json<Res
         FROM email_data_v3
         WHERE
             ($1::int IS NULL OR id = $1::int) AND
-            ($2::varchar IS NULL OR email_address LIKE $2::varchar) AND
+            ($2::varchar IS NULL OR email_address = $2::varchar) AND
             ($3::varchar IS NULL OR domain LIKE $3::varchar) AND
             ($4::bool IS NULL OR valid_syntax = $4::bool) AND
             ($5::bool IS NULL OR valid_syntax = $5::bool) AND
